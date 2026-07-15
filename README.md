@@ -1,0 +1,76 @@
+# 🍋 Lemonade Days: Codex Edition
+
+A richly animated, original 16-bit lemonade stand simulator built as a separate continuation of the v0.6 game. Plan your morning, open the stand, and watch a pixel summer roll by — customers wander up, weather turns, an ice cream truck visibly parks across the street, and rare visitors pull up for a cup. Every evening you get an honest little ledger. After 28 days, the summer ends and your score unlocks new recipes and modes.
+
+**Lofi on purpose, hi-bit by design:** a 640×360 pixel canvas (integer-scales cleanly to 720p/1080p), dusty palette, outlined-and-shaded sprites, parallax skyline, and an original synthesized chill-hop loop (vinyl crackle included). No assets, no engine — everything is drawn and played from code.
+
+<!-- TODO: screenshot / GIF -->
+
+## Play
+
+Once published, play the latest version at:
+
+**https://deepseekrlee.github.io/lemonade-days/**
+
+For a first-timer-friendly explanation of GitHub and future updates, see
+[PUBLISHING_FOR_BEGINNERS.md](PUBLISHING_FOR_BEGINNERS.md).
+
+```bash
+npm install
+npm run dev     # play at localhost:5173
+```
+
+Or grab `dist/lemonade-days.html` after a build — the whole game in one offline file.
+
+## How it plays
+
+- **Morning** — check the sky, buy lemons/sugar/ice/cups at wobbling market prices, tune your recipe, set a price, maybe buy an upgrade (they're all visible on the stand).
+- **Day** — the sim runs minute-by-minute while the scene animates. React to pop-up events: undercut the ice cream truck, shelter strangers under your umbrella, take the office's bulk order, surge-price the heatwave (they *will* remember).
+- **Evening** — a real ledger: revenue, tips, supplies used, missed sales and why, reputation shift, day grade.
+- **Summer's end** — score = cash + reputation×2 + cups×0.1 + merch fans. Unlocks: Pink Lemonade, Mint Cooler, Endless Mode, a head-start bonus.
+- **Upgrade tiers** — the umbrella grows clip-on fans, then a misting rig (own the heatwave); the cooler grows a slush machine that unlocks **Frozen Lemonade**, a premium product above 90°F that flops below 80° and drinks double ice.
+- **Marketing** (unlocks at $500 cash, built for the long game) — flyer runs, radio spots, and a one-time **Merch Drop**: delighted customers buy caps & tees, walk around wearing them, and every fan permanently boosts traffic, reputation, and score.
+- **The vibes layer** — every day the greens host something: Bigfoot and his sweetheart picnicking, kids playing catch, lemon-people tossing a frisbee, a busker (tip him in his day event and he plays all day), rockstars jamming. Overhead: bird flocks, a LEMONADE banner plane. A towering kaiju regularly looms up from behind the skyline — first visit he sips a tiny cup; after that he shows up **wearing your merch**. And very, very rarely, Bigfoot flies past on a winged unicorn — **click him** to comp a drink for his blessing.
+- **Close encounters of the citrus kind** — the first UFO of a run lands on the greens; two aliens waddle over and genuinely buy lemonade (and a cap, if you sell merch — it all hits the ledger). Every later flyby tows a ★★★★★ review banner.
+- **The Tepid Terror at solar peak** — on every 90°F+ day, a humidity warning flashes before the 2:00 PM attack. Lord Lukewarm scales through three heat tiers at 90/94/98°F: more armor, more puddle health, faster ooze, weaker knockback, flexing water-biceps, and a truly mean hottest-day face. The Slush Machine adds a charged **Slush Bomb** secondary with triple damage, huge knockback, and a deep slow. Lose (or hide) and Rapid Thaw + The Flatline wreck the day's ice and quality; win and choose a 2× **Glacier Boost** or mercy reputation.
+- **Flavor mood + lawn games** — each day the neighborhood secretly favors one of your flavors (small real demand bonus). Divine it by playing: **Lemon Rumble** (a very silly flavor-vs-flavor fighter — throw lemons and ice, charge the water cannon, dodge the sugar bucket, while bigfoots, aliens, and the kaiju cheer from the bleachers) or **Citrus Dash** (a hurdle race). Win or lose, the crowd reveals its favorite. **Chug Duel** is pure glory: steer your drinker under a wandering lemonade-cannon stream and fill up — belly and all — before the rival pair.
+- **Special merch drops** — witnessing each rare visitor unlocks a premium drop in Marketing (Kaiju Collab Tee $250, UFO Tour Cap $300, Sky Legend Snapback $400). Each grants +4 rep on release and +5% traffic forever, and fans start wearing the themed caps around the neighborhood.
+- **Ramp Rally + Garage** — a monster-truck jump where the lemonade stand on wheels and the ice cream truck clear rows of lemons. Hold and feather the gas to build speed without overheating; wind adds a little luck. Three garage tiers raise the ceiling, while the rival receives matching waffle tires, tuning, and ice-cream-cone rockets so upgrades never become an automatic win.
+- **Community skyline mural** — after the merch line reaches 15 neighborhood fans, fund five community-matched mural stages. Painters and scaffolding remain visible while a giant lemonade crest grows across two buildings; each stage permanently nudges traffic.
+- **Street cameos and festival nights** — the ice cream truck now physically parks during its event. A rare presidential motorcade pulls up and the President buys one lemonade for fun, with no bonus. Every seventh night becomes a skippable fireworks show, food-truck rally, and dancing block party.
+
+## Under the hood
+
+The whole game state derives from a **deterministic, seeded simulation** (`src/game/`), fully unit-tested:
+
+- Same seed → same summer, same customers. Each customer rolls from their own child RNG, which makes price elasticity provably monotonic (a customer who buys at $3 always buys at $1) — there's a test for it.
+- Demand = foot-traffic curve × weather × reputation × your upgrades and event choices; purchase = willingness-to-pay vs. price; satisfaction (taste, value, ice!) drives reputation.
+- The renderer (`src/render/`) and UI (`src/ui/`) are strictly presentation: detailed original canvas pixel art at 640×360 and a WebAudio-synthesized soundtrack. Zero runtime dependencies.
+
+```
+src/
+├── game/    types, rng, weather, sim, events/data, state, save  ← pure + tested
+├── render/  scene.ts (pixel canvas), audio.ts (synth music/SFX)
+└── ui/      screens, HUD, modals, styles
+```
+
+## Roadmap ideas
+
+- [ ] Daily-challenge seed (same day for everyone — determinism makes this free)
+- [ ] Grandmaster Lemon: a chess-club cameo where the flavors play each other (needs a tiny engine — contributions welcome)
+- [ ] More events, cameos, locations (park / beach / festival), stand cosmetics
+- [ ] Recipe experiments (strawberry, arnold palmer), regular customers with names
+- [ ] PWA install + touch polish, gamepad support
+- [ ] Achievements; endless-mode leaderboards (local)
+
+## Monetization notes (while staying open source)
+
+The code is MIT — anyone can learn from or fork it. Sustainable options that don't fight the license: sell convenience builds on itch.io / Steam (pay-what-you-want web, paid desktop), a supporter edition with cosmetic stand skins, or commissions/content packs. All art and audio are generated from code in this repo, so there are no third-party asset licenses to clear. The name/branding can be trademarked separately from the MIT code if this grows.
+
+## Contributing
+
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Changes to `src/game/` need tests (`npm test`); determinism is the contract that keeps the game fair and debuggable.
+
+## License
+
+[MIT](LICENSE)

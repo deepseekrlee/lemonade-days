@@ -22,11 +22,17 @@ npm run dev     # play at localhost:5173
 
 Or grab `dist/lemonade-days.html` after a build — the whole game in one offline file.
 
+### Continue the lesson in DrinkBiz
+
+At the end of any game day, choose **Export this day to DrinkBiz**. The downloaded JSON file can be imported from DrinkBiz Settings into a separate practice business, where the player can explore the day's sales, tips, merchandise, ingredient usage, costs, and profit with full bookkeeping reports.
+
+DrinkBiz is the separate, offline-first tracker companion: **https://deepseekrlee.github.io/drinkbiz/**. The bridge is deliberately practice-only and duplicate-safe, so simulated game records never get mixed into a real-business profile.
+
 ## How it plays
 
 - **Morning** — check the sky, buy lemons/sugar/ice/cups at wobbling market prices, tune your recipe, set a price, maybe buy an upgrade (they're all visible on the stand).
 - **Day** — the sim runs minute-by-minute while the scene animates. React to pop-up events: undercut the ice cream truck, shelter strangers under your umbrella, take the office's bulk order, surge-price the heatwave (they *will* remember).
-- **Evening** — a real ledger: revenue, tips, supplies used, missed sales and why, reputation shift, day grade.
+- **Evening** — a real ledger: revenue, tips, supplies used, missed sales and why, reputation shift, day grade, plus a DrinkBiz practice export.
 - **Summer's end** — score = cash + reputation×2 + cups×0.1 + merch fans. Unlocks: Pink Lemonade, Mint Cooler, Endless Mode, a head-start bonus.
 - **Upgrade tiers** — the umbrella grows clip-on fans, then a misting rig (own the heatwave); the cooler grows a slush machine that unlocks **Frozen Lemonade**, a premium product above 90°F that flops below 80° and drinks double ice.
 - **Marketing** (unlocks at $500 cash, built for the long game) — flyer runs, radio spots, and a one-time **Merch Drop**: delighted customers buy caps & tees, walk around wearing them, and every fan permanently boosts traffic, reputation, and score.

@@ -10,6 +10,11 @@ import {
   muralUnlocked, newRun, peakHeatBossMinute, repLabel, summerScore, todayWeather, tomorrowForecast,
 } from '../game/state';
 import { exportSave, importSave, loadSave, writeSave, type SaveFile } from '../game/save';
+import {
+  buildDrinkBizPracticeDay,
+  exportDrinkBizPracticeDay,
+  type DrinkBizPracticeDayExport,
+} from '../game/drinkbiz';
 import { WEATHER_ICON, WEATHER_LABEL } from '../game/weather';
 import type {
   DayResult, DayRuntime, FlavorId, GameEventDef, GameMode, MarketingAction, ProductId, Recipe, RunState, Supplies, UpgradeId,
@@ -62,6 +67,7 @@ export class UI {
   private audio = new AudioEngine();
   private scene: Scene | null = null;
   private day: DayRuntime | null = null;
+  private drinkBizDay: DrinkBizPracticeDayExport | null = null;
   private actions: Record<string, (x?: string) => void> = {};
   private raf = 0;
   private bossMinute: number | null = null;
@@ -693,6 +699,7 @@ export class UI {
     this.audio.dayEnd();
     this.audio.setRain(false);
     const result = endDayResult(d);
+    this.drinkBizDay = buildDrinkBizPracticeDay(run, d, result);
     run.supplies = { ...d.supplies };
     const { summerOver } = completeDay(run, result);
     this.day = null;
@@ -700,6 +707,22 @@ export class UI {
     this.persist();
     if (isFestivalNight(result.day, summerOver)) this.nightFestival(result, summerOver);
     else this.evening(result, summerOver);
+  }
+
+  private downloadDrinkBizDay(): void {
+    const payload = this.drinkBizDay;
+    if (!payload) {
+      this.toast('Finish a day before exporting to DrinkBiz.');
+      return;
+    }
+    const blob = new Blob([exportDrinkBizPracticeDay(payload)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lemonade-days-run-${payload.source.runId}-day-${payload.source.day}.drinkbiz.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.toast('DrinkBiz practice day exported!');
   }
 
   // ------------------------------------------------------- tepid terror
@@ -829,10 +852,16 @@ export class UI {
           <div class="lrow dim"><span>Missed: sold out</span><b>${r.lostStock}</b></div>
           ${row('Reputation', `${Math.round(r.repBefore)} → ${Math.round(r.repAfter)} (${repLabel(r.repAfter)})`)}
           ${r.notes.map((n) => `<div class="note">☞ ${n}</div>`).join('')}
+          <button class="big" data-a="drinkbiz-export">📒 Export this day to DrinkBiz</button>
+          <a class="big" href="https://deepseekrlee.github.io/drinkbiz/" target="_blank" rel="noopener">Open DrinkBiz companion ↗</a>
+          <p class="dim">Creates a practice-business summary using the game’s standard ingredient costs. It never mixes with real records unless you import it.</p>
           <button class="big go" data-a="next">${summerOver ? '🌇 Finish the summer' : 'Next morning ▶'}</button>
         </div>
       </div>`;
-    this.actions = { next: () => (summerOver ? this.summerEnd() : this.morning()) };
+    this.actions = {
+      'drinkbiz-export': () => this.downloadDrinkBizDay(),
+      next: () => (summerOver ? this.summerEnd() : this.morning()),
+    };
   }
 
   // --------------------------------------------------------- summer end

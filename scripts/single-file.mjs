@@ -7,12 +7,27 @@ import { fileURLToPath } from 'node:url';
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 let html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
 
+// Vite prefixes asset URLs with the configured site base. On GitHub Pages that
+// looks like `/lemonade-days/assets/file.js`, while the file on disk is still
+// `dist/assets/file.js`. Keep only the built `assets/` portion.
+function builtAssetPath(reference) {
+  const pathname = decodeURIComponent(new URL(reference, 'https://build.invalid/').pathname);
+  const assetMarker = '/assets/';
+  const markerIndex = pathname.lastIndexOf(assetMarker);
+
+  if (markerIndex === -1) {
+    throw new Error(`Expected a Vite asset URL, received: ${reference}`);
+  }
+
+  return path.join(dist, pathname.slice(markerIndex + 1));
+}
+
 html = html.replace(/<script type="module"[^>]*src="([^"]+)"[^>]*><\/script>/, (_, src) => {
-  const js = fs.readFileSync(path.join(dist, src.replace(/^\//, '').replace(/^\.\//, '')), 'utf8');
+  const js = fs.readFileSync(builtAssetPath(src), 'utf8');
   return `<script type="module">\n${js}\n</script>`;
 });
 html = html.replace(/<link rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/, (_, href) => {
-  const css = fs.readFileSync(path.join(dist, href.replace(/^\//, '').replace(/^\.\//, '')), 'utf8');
+  const css = fs.readFileSync(builtAssetPath(href), 'utf8');
   return `<style>\n${css}\n</style>`;
 });
 

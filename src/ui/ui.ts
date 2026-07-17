@@ -24,6 +24,7 @@ import { flavorMoodFor } from '../game/mood';
 import { runMinigame, type MiniKind } from './minigames';
 import { AudioEngine } from '../render/audio';
 import { FestivalScene } from '../render/festival';
+import { TOWN_DAY_URL } from '../render/art';
 
 const $ = (sel: string, root: ParentNode): HTMLElement => {
   const el = root.querySelector(sel);
@@ -135,8 +136,9 @@ export class UI {
     const m = this.save.meta;
     this.root.innerHTML = `
       <div class="screen title-screen">
+        <div class="title-bg" aria-hidden="true"><img src="${TOWN_DAY_URL}" alt="" /></div>
         <div class="logo"><span>LEMONADE</span><span class="logo2">DAYS</span></div>
-        <p class="tagline">CODEX EDITION · a richly animated 16-bit summer business</p>
+        <p class="tagline">CODEX EDITION · a handcrafted pixel-art summer story</p>
         <div class="menu">
           ${this.save.run ? `<button class="big" data-a="continue">▶ Continue — Day ${this.save.run.day}${this.save.run.mode === 'summer' ? ` of ${SUMMER_DAYS}` : ' (endless)'}</button>` : ''}
           <button class="big" data-a="new">🍋 New Summer</button>

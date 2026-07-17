@@ -1,10 +1,10 @@
 # 🍋 Lemonade Days: Codex Edition
 
-A richly animated, original 16-bit lemonade stand simulator built as a separate continuation of the v0.6 game. Plan your morning, open the stand, and watch a pixel summer roll by — customers wander up, weather turns, an ice cream truck visibly parks across the street, and rare visitors pull up for a cup. Every evening you get an honest little ledger. After 28 days, the summer ends and your score unlocks new recipes and modes.
+A richly illustrated, original high-bit pixel-art lemonade stand simulator. Plan your morning, open the stand, and watch a storybook summer roll by — customers wander up, weather turns, an ice cream truck visibly parks across the street, and rare visitors pull up for a cup. Every evening you get an honest little ledger. After 28 days, the summer ends and your score unlocks new recipes and modes.
 
-**Lofi on purpose, hi-bit by design:** a 640×360 pixel canvas (integer-scales cleanly to 720p/1080p), dusty palette, outlined-and-shaded sprites, parallax skyline, and an original synthesized chill-hop loop (vinyl crackle included). No assets, no engine — everything is drawn and played from code.
+**Handcrafted high-bit presentation:** gameplay still uses a precise 640×360 logical grid, but the canvas now renders at 1280×720 with detailed original town paintings, luminous day/night color grading, expressive multi-tone characters, a fully remodeled stand, atmospheric particles, and a storybook interface. Procedural animation and canvas effects keep the illustrated world alive without changing the deterministic simulation underneath it.
 
-<!-- TODO: screenshot / GIF -->
+See [ART_DIRECTION.md](ART_DIRECTION.md) for the visual principles and reproducible environment prompts.
 
 ## Play
 
@@ -51,13 +51,14 @@ The whole game state derives from a **deterministic, seeded simulation** (`src/g
 
 - Same seed → same summer, same customers. Each customer rolls from their own child RNG, which makes price elasticity provably monotonic (a customer who buys at $3 always buys at $1) — there's a test for it.
 - Demand = foot-traffic curve × weather × reputation × your upgrades and event choices; purchase = willingness-to-pay vs. price; satisfaction (taste, value, ice!) drives reputation.
-- The renderer (`src/render/`) and UI (`src/ui/`) are strictly presentation: detailed original canvas pixel art at 640×360 and a WebAudio-synthesized soundtrack. Zero runtime dependencies.
+- The renderer (`src/render/`) and UI (`src/ui/`) are strictly presentation: original illustrated environment assets, high-resolution canvas character/effect layers, and a WebAudio-synthesized soundtrack. Zero runtime dependencies.
 
 ```
 src/
+├── assets/  original day and night master environment art
 ├── game/    types, rng, weather, sim, events/data, state, save  ← pure + tested
-├── render/  scene.ts (pixel canvas), audio.ts (synth music/SFX)
-└── ui/      screens, HUD, modals, styles
+├── render/  high-resolution canvas scenes, sprites, effects, music/SFX
+└── ui/      screens, HUD, mini-games, modals, illustrated styles
 ```
 
 ## Roadmap ideas
@@ -71,7 +72,7 @@ src/
 
 ## Monetization notes (while staying open source)
 
-The code is MIT — anyone can learn from or fork it. Sustainable options that don't fight the license: sell convenience builds on itch.io / Steam (pay-what-you-want web, paid desktop), a supporter edition with cosmetic stand skins, or commissions/content packs. All art and audio are generated from code in this repo, so there are no third-party asset licenses to clear. The name/branding can be trademarked separately from the MIT code if this grows.
+The code is MIT — anyone can learn from or fork it. Sustainable options that don't fight the license: sell convenience builds on itch.io / Steam (pay-what-you-want web, paid desktop), a supporter edition with cosmetic stand skins, or commissions/content packs. The environment art is original to this project and the remaining art and audio are rendered from code, so there are no third-party game-asset licenses to clear. The name/branding can be trademarked separately from the MIT code if this grows.
 
 ## Contributing
 

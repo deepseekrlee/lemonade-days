@@ -8,6 +8,7 @@
 import { FLAVORS, bossTierFor } from '../game/data';
 import type { FlavorId } from '../game/types';
 import { drawBigfoot } from '../render/ambient';
+import { configureHiResCanvas, drawTownBackground } from '../render/art';
 import { OUTLINE, drawAlienGuy, drawKid, drawLemonFolk, drawPerson, shade } from '../render/sprites';
 
 export type MiniKind = 'rumble' | 'dash' | 'chug' | 'ramp' | 'cryo';
@@ -68,9 +69,7 @@ export function runMinigame(host: HTMLElement, kind: MiniKind, opts: MiniOpts): 
       <button data-k="right">▶</button>
     </div>`}`;
   const canvas = host.querySelector('.mg-canvas') as HTMLCanvasElement;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) { opts.onDone({ won: false, quit: true }); return () => undefined; }
-  ctx.imageSmoothingEnabled = false;
+  const ctx = configureHiResCanvas(canvas);
 
   const input: Input = { left: false, right: false, up: false, a: false, b: false, c: false };
   const justPressed = new Set<string>();
@@ -160,12 +159,25 @@ export function runMinigame(host: HTMLElement, kind: MiniKind, opts: MiniOpts): 
 /* ------------------------------ shared bits ------------------------------ */
 
 function arena(ctx: CanvasRenderingContext2D, time: number, crowd: boolean): void {
-  ctx.fillStyle = '#9fd4e8';
-  ctx.fillRect(0, 0, W, 130);
-  ctx.fillStyle = '#88b078';
+  drawTownBackground(ctx, 'day', 0.5, 'sunny', time);
+  const turf = ctx.createLinearGradient(0, 128, 0, H);
+  turf.addColorStop(0, 'rgba(93,145,88,0.88)');
+  turf.addColorStop(0.45, 'rgba(54,111,74,0.96)');
+  turf.addColorStop(1, 'rgba(30,71,59,0.99)');
+  ctx.fillStyle = turf;
   ctx.fillRect(0, 130, W, H - 130);
-  ctx.fillStyle = shade('#88b078', -10);
-  for (let x = 0; x < W; x += 48) ctx.fillRect(x, 130, 24, H - 130);
+  ctx.fillStyle = 'rgba(180,224,140,0.12)';
+  for (let x = -40; x < W; x += 76) {
+    ctx.beginPath();
+    ctx.ellipse(x + ((time / 80) % 20), 158 + (x % 3) * 28, 42, 12, -0.18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(245,230,133,0.7)';
+  for (let i = 0; i < 18; i++) {
+    ctx.beginPath();
+    ctx.arc((i * 97 + 23) % W, 146 + ((i * 37) % 190), i % 3 === 0 ? 1.5 : 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
   if (!crowd) return;
   // kaiju peeking over the treeline
   ctx.fillStyle = '#5f7d76';

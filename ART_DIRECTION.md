@@ -4,6 +4,14 @@ The remaster uses an original, high-bit pixel-art direction: lush environmental 
 
 The two master environments were generated with OpenAI's image generation tool and then integrated with original canvas-rendered characters, vehicles, weather, particles, lighting, stand upgrades, mini-games, and interface art. Both source assets are included in `src/assets/` and are covered by this project's license.
 
+## Character and animation system
+
+The second remaster pass brings every recurring actor into the same visual language as the environments. Townspeople, children, Bigfoot, aliens, lemon folk, soft-serve rivals, the kaiju, pegasus, UFOs, aircraft, rally trucks, instruments, and street vehicles use curved silhouettes, selective dark-indigo rims, layered gradients, material highlights, and small expressive facial details. The designs are original; inspiration is limited to broad qualities such as high-bit readability, painterly light, lively posing, and whimsical scale.
+
+Animation preserves the original simulation anchors and hit positions while adding four-pose walks, squash-and-stretch, suspension, wheel rotation, secondary motion, anticipation tells, recovery poses, particles, and environmental occlusion. Giant characters are partially repainted behind procedural foliage so they occupy the illustrated town's depth layers. The five-stage community mural deliberately expands from one facade to three, with scaffolding and painters migrating alongside the work.
+
+Mini-games may enlarge the shared cast substantially, but should retain the same palette and anatomy. Zest vs. Frost uses large ringside versions of the lemon and soft-serve characters, readable glove tells, warm/cool spotlights, and recovery-window counter animations rather than imitating any existing boxing game's characters, ring, UI, or exact presentation.
+
 ## Day environment prompt
 
 > Use case: stylized-concept

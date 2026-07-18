@@ -215,6 +215,12 @@ button.chip.on, .hudbar .btn.on { background: linear-gradient(180deg, #ffe990, #
 
 @media (min-width: 900px) { .mg-controls { display: none; } }
 @media (max-width: 899px) { .mg-help { display: none; } }
+@media (max-width: 480px) {
+  .modal.game { overflow: hidden; padding: 9px; width: calc(100vw - 20px); }
+  .mg-controls { gap: 4px; width: 100%; }
+  .mg-controls button { flex: 1 1 0; font-size: 12px; min-width: 0; padding: 10px 3px; }
+  .mg-controls button.gas { flex-grow: 3; min-width: 0; }
+}
 @media (max-width: 760px) {
   .cols { grid-template-columns: 1fr; }
   .mfoot { flex-wrap: wrap; }

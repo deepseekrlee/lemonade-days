@@ -9,9 +9,9 @@ import { FLAVORS, bossTierFor } from '../game/data';
 import type { FlavorId } from '../game/types';
 import { drawBigfoot } from '../render/ambient';
 import { configureHiResCanvas, drawTownBackground } from '../render/art';
-import { OUTLINE, drawAlienGuy, drawKid, drawLemonFolk, drawPerson, shade } from '../render/sprites';
+import { OUTLINE, drawAlienGuy, drawIceCreamFolk, drawKid, drawLemonFolk, drawPerson, shade } from '../render/sprites';
 
-export type MiniKind = 'rumble' | 'dash' | 'chug' | 'ramp' | 'cryo';
+export type MiniKind = 'rumble' | 'dash' | 'chug' | 'ramp' | 'boxing' | 'cryo';
 export interface MiniResult { won: boolean; quit: boolean; choice?: string; value?: number; summary?: string; }
 
 export interface MiniOpts {
@@ -46,7 +46,7 @@ interface Game {
 export function runMinigame(host: HTMLElement, kind: MiniKind, opts: MiniOpts): () => void {
   host.innerHTML = `
     <div class="mg-head">
-      <b>${kind === 'rumble' ? '🥊 LEMON RUMBLE' : kind === 'dash' ? '🏁 CITRUS DASH' : kind === 'ramp' ? '🏎️ RAMP RALLY' : kind === 'cryo' ? '🦹 CRYO-DEFENSE' : '🔫 CHUG DUEL'}</b>
+      <b>${kind === 'rumble' ? '🥊 LEMON RUMBLE' : kind === 'dash' ? '🏁 CITRUS DASH' : kind === 'ramp' ? '🏎️ RAMP RALLY' : kind === 'boxing' ? '🥊 ZEST VS. FROST' : kind === 'cryo' ? '🦹 CRYO-DEFENSE' : '🔫 CHUG DUEL'}</b>
       <button class="mg-quit">✕ quit</button>
     </div>
     <canvas class="mg-canvas" width="${W}" height="${H}"></canvas>
@@ -57,6 +57,8 @@ export function runMinigame(host: HTMLElement, kind: MiniKind, opts: MiniOpts): 
         ? '↑ or SPACE to jump the obstacles!'
         : kind === 'ramp'
         ? 'HOLD SPACE, Z, or → to build speed. Feather the gas before the engine overheats. Wind adds a little luck.'
+        : kind === 'boxing'
+        ? '←/→ dodge · ↑ or SPACE block · Z quick jab · X zest hook · watch the rival’s gloves, then counter!'
         : kind === 'cryo'
         ? `TAP or CLICK to hurl ice. Do NOT let him reach the vats!${opts.hasSlush ? ' SPACE fires the charged SLUSH BOMB.' : ''}`
         : '←/→ to catch the stream in your mouth. Fill up first!'
@@ -66,6 +68,7 @@ export function runMinigame(host: HTMLElement, kind: MiniKind, opts: MiniOpts): 
       ${kind === 'dash' ? '<button data-k="up">JUMP</button>' : ''}
       ${kind === 'rumble' ? '<button data-k="a">🍋</button><button data-k="b">🧊</button><button data-k="c">💦</button>' : ''}
       ${kind === 'ramp' ? '<button class="gas" data-k="a">HOLD GAS</button>' : ''}
+      ${kind === 'boxing' ? '<button data-k="up">BLOCK</button><button data-k="a">JAB</button><button data-k="b">HOOK</button>' : ''}
       <button data-k="right">▶</button>
     </div>`}`;
   const canvas = host.querySelector('.mg-canvas') as HTMLCanvasElement;
@@ -102,7 +105,7 @@ export function runMinigame(host: HTMLElement, kind: MiniKind, opts: MiniOpts): 
     btn.addEventListener('pointerleave', press(false));
   });
 
-  const game: Game = kind === 'rumble' ? rumble(opts) : kind === 'dash' ? dash(opts) : kind === 'ramp' ? ramp(opts) : kind === 'cryo' ? cryo(opts) : chug(opts);
+  const game: Game = kind === 'rumble' ? rumble(opts) : kind === 'dash' ? dash(opts) : kind === 'ramp' ? ramp(opts) : kind === 'boxing' ? boxing(opts) : kind === 'cryo' ? cryo(opts) : chug(opts);
   game.mount?.(canvas);
   let raf = 0;
   let last = performance.now();
@@ -179,14 +182,22 @@ function arena(ctx: CanvasRenderingContext2D, time: number, crowd: boolean): voi
     ctx.fill();
   }
   if (!crowd) return;
-  // kaiju peeking over the treeline
-  ctx.fillStyle = '#5f7d76';
-  ctx.fillRect(516, 34, 44, 40);
-  ctx.fillRect(500, 46, 24, 16);
-  ctx.fillStyle = '#f2d24b';
-  ctx.fillRect(524, 52, 6, 4);
-  ctx.fillStyle = '#8fa89a';
-  ctx.fillRect(548, 24, 10, 12);
+  // The remastered kaiju peeks over the treeline to watch the lawn games.
+  ctx.save(); ctx.translate(535, 76);
+  ctx.fillStyle = OUTLINE;
+  ctx.beginPath(); ctx.ellipse(0, -22, 27, 29, -0.08, 0, Math.PI * 2); ctx.ellipse(-25, -17, 21, 11, 0, 0, Math.PI * 2); ctx.fill();
+  const kaiju = ctx.createLinearGradient(-25, -47, 25, 4); kaiju.addColorStop(0, '#92baa1'); kaiju.addColorStop(0.48, '#5d8477'); kaiju.addColorStop(1, '#31565a');
+  ctx.fillStyle = kaiju;
+  ctx.beginPath(); ctx.ellipse(0, -22, 24, 26, -0.08, 0, Math.PI * 2); ctx.ellipse(-24, -17, 18, 8.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#aac5a2'; ctx.beginPath(); ctx.ellipse(-22, -14, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffe36f'; ctx.beginPath(); ctx.ellipse(-8, -27, 3.5, 2.7, -0.15, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.ellipse(-7.5, -27, 1, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+  for (const [sx, sy] of [[17, -47], [24, -37], [27, -25]] as const) {
+    ctx.fillStyle = '#8dd0b0'; ctx.beginPath(); ctx.moveTo(sx - 4, sy + 12); ctx.lineTo(sx + 2, sy); ctx.lineTo(sx + 10, sy + 13); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = '#214b4d';
+  for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.ellipse(i * 15, 1 - (i % 2) * 3, 15, 9, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
   // bleachers
   ctx.fillStyle = OUTLINE;
   ctx.fillRect(38, 96, 420, 6);
@@ -560,26 +571,30 @@ type ChugKind = 'bigfoot' | 'alien' | 'lemon' | 'kid';
 const CHUG_POOL: ChugKind[] = ['bigfoot', 'alien', 'lemon', 'kid'];
 
 function drawChugger(ctx: CanvasRenderingContext2D, kind: ChugKind, x: number, y: number, fill: number, time: number): void {
-  // inflating belly behind the character
+  // Inflating, translucent belly behind the character.
   const stage = Math.floor(fill / 20);
   if (stage > 0) {
+    const bellyColor = kind === 'alien' ? '#7fd97a' : kind === 'lemon' ? '#f2d24b' : kind === 'bigfoot' ? '#6f5138' : '#6fa8c9';
     ctx.fillStyle = OUTLINE;
-    ctx.fillRect(x - 2 - stage * 3, y + 12 - 1, 18 + stage * 6, 14 + stage * 2);
-    ctx.fillStyle = kind === 'alien' ? '#7fd97a' : kind === 'lemon' ? '#f2d24b' : kind === 'bigfoot' ? '#6f5138' : '#6fa8c9';
-    ctx.fillRect(x - 1 - stage * 3, y + 12, 16 + stage * 6, 12 + stage * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.fillRect(x - stage * 3, y + 13, 5, 4);
+    ctx.beginPath(); ctx.ellipse(x + 7, y + 20, 10 + stage * 3, 8 + stage * 1.3, 0, 0, Math.PI * 2); ctx.fill();
+    const belly = ctx.createRadialGradient(x + 2, y + 15, 1, x + 8, y + 21, 17 + stage * 2);
+    belly.addColorStop(0, shade(bellyColor, 48)); belly.addColorStop(0.55, bellyColor); belly.addColorStop(1, shade(bellyColor, -42));
+    ctx.fillStyle = belly;
+    ctx.beginPath(); ctx.ellipse(x + 7, y + 20, 8.5 + stage * 3, 6.5 + stage * 1.3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.beginPath(); ctx.ellipse(x + 1, y + 16, 3, 2.2, -0.3, 0, Math.PI * 2); ctx.fill();
   }
   const f = Math.floor(time / 200);
   if (kind === 'bigfoot') drawBigfoot(ctx, x - 8, y - 26, 1, { sit: false });
   else if (kind === 'alien') drawAlienGuy(ctx, x, y, f, false, false);
   else if (kind === 'lemon') drawLemonFolk(ctx, x, y - 6, { mouthOpen: true });
   else drawKid(ctx, x, y - 2, f, { shirt: '#6fa8c9', skin: '#f0c8a0', hair: '#8a5a3a', pants: '#4f4a6b' }, false);
-  // open mouth marker so you know where to catch
-  ctx.fillStyle = OUTLINE;
-  ctx.fillRect(x + 4, y + (kind === 'bigfoot' ? -18 : 2), 8, 4);
-  ctx.fillStyle = '#c74b50';
-  ctx.fillRect(x + 5, y + (kind === 'bigfoot' ? -17 : 3), 6, 2);
+  // A softly pulsing open mouth remains an obvious catch target.
+  const mouthX = kind === 'alien' ? x + 5 : kind === 'kid' ? x + 9 : x + 7;
+  const mouthY = kind === 'bigfoot' ? y - 17 : kind === 'alien' ? y + 1 : kind === 'kid' ? y + 6 : y + 3;
+  ctx.save(); ctx.shadowColor = '#ffafaf'; ctx.shadowBlur = 3 + Math.sin(time / 120) * 1.5;
+  ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.ellipse(mouthX, mouthY, 4.5, 2.8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#d85d70'; ctx.beginPath(); ctx.ellipse(mouthX, mouthY + 0.4, 3.1, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffb0a8'; ctx.beginPath(); ctx.ellipse(mouthX, mouthY + 1, 1.7, 0.6, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
 }
 
 function chug(opts: MiniOpts): Game {
@@ -690,80 +705,78 @@ function drawRallyTruck(
 ): void {
   const body = kind === 'lemon' ? '#f2d24b' : '#fbf7ec';
   const accent = kind === 'lemon' ? '#2f7d4a' : '#f2b8c6';
-  const bounce = Math.round(Math.sin(time / 70 + x) * 1.5);
+  const bounce = Math.sin(time / 70 + x) * 1.5;
   const y = wheelY - 35 + bounce;
-  ctx.fillStyle = 'rgba(43,36,64,0.22)';
-  ctx.fillRect(x + 4, wheelY + 8, 70, 4);
-  // suspension and monster wheels
-  ctx.fillStyle = OUTLINE;
-  ctx.fillRect(x + 12, wheelY - 6, 48, 5);
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,28,46,0.28)'; ctx.beginPath(); ctx.ellipse(x + 38, wheelY + 9, 43, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Independent suspension and treaded monster wheels animate at launch speed.
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x + 15, wheelY - 2); ctx.lineTo(x + 27, y + 22); ctx.moveTo(x + 61, wheelY - 2); ctx.lineTo(x + 49, y + 22); ctx.stroke();
   for (const wx of [x + 15, x + 61]) {
-    ctx.fillStyle = OUTLINE;
-    ctx.fillRect(wx - 10, wheelY - 10, 20, 20);
-    ctx.fillStyle = '#242033';
-    ctx.fillRect(wx - 7, wheelY - 7, 14, 14);
-    ctx.fillStyle = level >= 1 ? accent : '#9aa5a8';
-    ctx.fillRect(wx - 3, wheelY - 3, 6, 6);
-    ctx.fillStyle = '#fbf7ec';
-    if (Math.floor(time / 100) % 2 === 0) ctx.fillRect(wx - 1, wheelY - 6, 2, 12);
-    else ctx.fillRect(wx - 6, wheelY - 1, 12, 2);
+    ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.arc(wx, wheelY, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#141b2c'; ctx.beginPath(); ctx.arc(wx, wheelY, 9.2, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(wx, wheelY); ctx.rotate(time * 0.025);
+    ctx.strokeStyle = '#55596c'; ctx.lineWidth = 1.3;
+    for (let spoke = 0; spoke < 6; spoke++) { const a = spoke * Math.PI / 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 8, Math.sin(a) * 8); ctx.stroke(); }
+    ctx.restore();
+    ctx.fillStyle = level >= 1 ? accent : '#9aa5a8'; ctx.beginPath(); ctx.arc(wx, wheelY, 4.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f5f2e7'; ctx.beginPath(); ctx.arc(wx, wheelY, 1.5, 0, Math.PI * 2); ctx.fill();
   }
-  // body: lemonade stand-on-wheels versus ice cream truck
-  ctx.fillStyle = OUTLINE;
-  ctx.fillRect(x, y - 8, 76, 35);
-  ctx.fillStyle = body;
-  ctx.fillRect(x + 3, y - 5, 70, 29);
-  ctx.fillStyle = accent;
-  ctx.fillRect(x + 3, y + 14, 70, 10);
+
+  // Rounded chassis, reflected paint, fenders, and reinforced lower trim.
+  ctx.shadowColor = 'rgba(20,25,43,0.32)'; ctx.shadowBlur = 5;
+  ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(x, y - 8, 77, 36, 8); ctx.fill();
+  ctx.shadowBlur = 0;
+  const paint = ctx.createLinearGradient(x + 2, y - 6, x + 73, y + 25);
+  paint.addColorStop(0, shade(body, 35)); paint.addColorStop(0.5, body); paint.addColorStop(1, shade(body, -38));
+  ctx.fillStyle = paint; ctx.beginPath(); ctx.roundRect(x + 2.5, y - 5.5, 72, 31, 6); ctx.fill();
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.roundRect(x + 3, y + 14, 71, 11, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.48)'; ctx.fillRect(x + 7, y - 3, 2, 17);
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(x + 15, wheelY, 14, Math.PI, 0); ctx.arc(x + 61, wheelY, 14, Math.PI, 0); ctx.stroke();
+
   if (kind === 'lemon') {
-    ctx.fillStyle = OUTLINE;
-    ctx.fillRect(x + 9, y - 17, 48, 12);
+    // A tiny real stand: striped canvas awning, serving opening, logo, counter.
+    ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(x + 8, y - 20, 52, 15, 4); ctx.fill();
     for (let i = 0; i < 6; i++) {
-      ctx.fillStyle = i % 2 ? '#fbf7ec' : '#e8b45f';
-      ctx.fillRect(x + 11 + i * 8, y - 15, 8, 8);
+      ctx.fillStyle = i % 2 ? '#fff6df' : '#eab558';
+      ctx.beginPath(); ctx.moveTo(x + 10 + i * 8, y - 18); ctx.lineTo(x + 18 + i * 8, y - 18); ctx.lineTo(x + 16 + i * 8, y - 7); ctx.lineTo(x + 9 + i * 8, y - 7); ctx.closePath(); ctx.fill();
     }
-    ctx.fillStyle = '#27364a';
-    ctx.fillRect(x + 10, y, 35, 12);
-    ctx.fillStyle = '#f2d24b';
-    ctx.fillRect(x + 16, y + 3, 8, 6);
-    ctx.fillStyle = '#2f7d4a';
-    ctx.fillRect(x + 24, y + 1, 5, 4);
-    ctx.fillStyle = OUTLINE;
-    ctx.font = 'bold 7px monospace';
-    ctx.fillText('ZEST', x + 48, y + 9);
+    ctx.fillStyle = '#17283e'; ctx.beginPath(); ctx.roundRect(x + 9, y - 2, 37, 15, 3); ctx.fill();
+    const glow = ctx.createLinearGradient(x + 11, y, x + 44, y + 11); glow.addColorStop(0, '#fff0a3'); glow.addColorStop(1, '#6ca981');
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.roundRect(x + 12, y, 31, 10, 2); ctx.fill();
+    ctx.fillStyle = '#f3d34d'; ctx.beginPath(); ctx.ellipse(x + 22, y + 5, 5.5, 4, -0.15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3a7c58'; ctx.beginPath(); ctx.ellipse(x + 27, y + 1, 3, 1.5, -0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff8df'; ctx.font = '900 7px "Trebuchet MS", sans-serif'; ctx.fillText('ZEST', x + 48, y + 9);
   } else {
-    ctx.fillStyle = '#6fa8c9';
-    ctx.fillRect(x + 48, y - 2, 20, 14);
-    ctx.fillStyle = '#9fd4e8';
-    ctx.fillRect(x + 51, y, 14, 9);
-    ctx.fillStyle = OUTLINE;
-    ctx.fillRect(x + 9, y - 2, 31, 14);
-    ctx.fillStyle = '#f2b8c6';
-    ctx.fillRect(x + 12, y + 1, 25, 8);
-    ctx.fillStyle = '#e8b45f';
-    ctx.fillRect(x + 25, y - 17, 12, 12);
-    ctx.fillStyle = '#fbf7ec';
-    ctx.fillRect(x + 22, y - 23, 18, 8);
+    // Curved windscreen and luminous ice-cream display.
+    ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(x + 47, y - 4, 23, 18, 4); ctx.fill();
+    ctx.fillStyle = '#8ecfe2'; ctx.beginPath(); ctx.moveTo(x + 50, y - 1); ctx.lineTo(x + 61, y - 1); ctx.lineTo(x + 67, y + 11); ctx.lineTo(x + 50, y + 11); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(x + 8, y - 3, 33, 17, 3); ctx.fill();
+    const caseGlow = ctx.createLinearGradient(x + 10, y, x + 39, y + 12); caseGlow.addColorStop(0, '#fff1bf'); caseGlow.addColorStop(1, '#e798b3');
+    ctx.fillStyle = caseGlow; ctx.beginPath(); ctx.roundRect(x + 11, y, 27, 11, 2); ctx.fill();
+    ctx.fillStyle = '#bd7949'; ctx.beginPath(); ctx.moveTo(x + 26, y - 14); ctx.lineTo(x + 36, y - 14); ctx.lineTo(x + 31, y - 5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.arc(x + 31, y - 20, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff3ed'; ctx.beginPath(); ctx.arc(x + 31, y - 20, 7, 0, Math.PI * 2); ctx.arc(x + 27, y - 16, 5, 0, Math.PI * 2); ctx.arc(x + 35, y - 16, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ef9bb5'; ctx.beginPath(); ctx.arc(x + 31, y - 24, 3.5, 0, Math.PI * 2); ctx.fill();
   }
-  // matched rocket packages: lemon pods vs. ice-cream-cone pods
+
+  // Matched rocket packages: lemon canisters versus waffle-cone boosters.
   if (level >= 2) {
-    ctx.fillStyle = OUTLINE;
-    ctx.fillRect(x - 10, y + 7, 13, 10);
-    ctx.fillStyle = level >= 3 ? accent : '#9aa5a8';
-    ctx.fillRect(x - 8, y + 9, 10, 6);
+    ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(x - 11, y + 6, 14, 12, 4); ctx.fill();
+    ctx.fillStyle = level >= 3 ? accent : '#9aa5a8'; ctx.beginPath(); ctx.roundRect(x - 9, y + 8, 10, 8, 2); ctx.fill();
     if (kind === 'ice' && level >= 3) {
-      ctx.fillStyle = '#e8b45f';
-      ctx.fillRect(x - 15, y + 8, 7, 8);
-      ctx.fillStyle = '#fbf7ec';
-      ctx.fillRect(x - 18, y + 6, 7, 4);
+      ctx.fillStyle = '#d99550'; ctx.beginPath(); ctx.moveTo(x - 18, y + 7); ctx.lineTo(x - 8, y + 7); ctx.lineTo(x - 10, y + 17); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff2e8'; ctx.beginPath(); ctx.arc(x - 15, y + 5, 5, 0, Math.PI * 2); ctx.fill();
     }
     if (flame) {
-      ctx.fillStyle = '#c74b50';
-      ctx.fillRect(x - 20 - (Math.floor(time / 70) % 2) * 5, y + 10, 12, 4);
-      ctx.fillStyle = '#f7e096';
-      ctx.fillRect(x - 15, y + 11, 8, 2);
+      const flicker = 4 + Math.sin(time / 55) * 4;
+      ctx.fillStyle = '#e65358'; ctx.beginPath(); ctx.moveTo(x - 9, y + 10); ctx.quadraticCurveTo(x - 22 - flicker, y + 5, x - 31 - flicker, y + 12); ctx.quadraticCurveTo(x - 21 - flicker, y + 19, x - 9, y + 15); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffe67a'; ctx.beginPath(); ctx.moveTo(x - 9, y + 11); ctx.quadraticCurveTo(x - 19 - flicker * 0.5, y + 10, x - 23 - flicker, y + 13); ctx.quadraticCurveTo(x - 17, y + 16, x - 9, y + 14); ctx.closePath(); ctx.fill();
     }
   }
+  ctx.restore();
 }
 
 function ramp(opts: MiniOpts): Game {
@@ -907,6 +920,351 @@ function ramp(opts: MiniOpts): Game {
         ctx.fillText(`YOU ${playerLemons} LEMONS`, 250, 334);
         ctx.fillText(`RIVAL ${rivalLemons} LEMONS`, 250, 216);
       }
+    },
+  };
+}
+
+/* ----------------------------- ZEST VS FROST ----------------------------- */
+
+type FightPose = 'idle' | 'jab' | 'hook' | 'block' | 'hit';
+type FrostMove = 'jab' | 'hook' | 'scoop';
+type FrostState = 'idle' | 'tell' | 'strike' | 'recover' | 'hurt';
+
+interface FightSpark { x: number; y: number; vx: number; vy: number; life: number; color: string; }
+
+function fightGlove(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, angle = 0): void {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(angle);
+  ctx.fillStyle = OUTLINE;
+  ctx.beginPath(); ctx.ellipse(0, 0, 4.8, 4.2, -0.2, 0, Math.PI * 2); ctx.fill();
+  const glove = ctx.createRadialGradient(-1.7, -1.8, 0.4, 0, 0, 5.2);
+  glove.addColorStop(0, shade(color, 55)); glove.addColorStop(0.55, color); glove.addColorStop(1, shade(color, -48));
+  ctx.fillStyle = glove;
+  ctx.beginPath(); ctx.ellipse(0, 0, 3.8, 3.3, -0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = shade(color, -28); ctx.beginPath(); ctx.roundRect(-3.1, 2.1, 5.5, 2.5, 1); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.42)'; ctx.beginPath(); ctx.ellipse(-1.5, -1.2, 1.2, 0.75, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawFightLemon(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  floor: number,
+  pose: FightPose,
+  dodge: number,
+  hurt: boolean,
+  time: number,
+  color: string,
+): void {
+  ctx.save();
+  ctx.translate(x + dodge * 39, floor);
+  if (pose === 'hit') ctx.rotate(-0.16);
+  const breathe = pose === 'idle' ? Math.sin(time / 260) * 0.018 : 0;
+  ctx.scale(4.15 + breathe, 4.15 - breathe);
+  drawLemonFolk(ctx, -7, -21, { color: hurt ? '#f5b7a7' : color, mouthOpen: pose === 'hit', throwing: pose === 'jab' || pose === 'hook' });
+  ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(-7.5, -8.8, 15, 5.2, 2); ctx.fill();
+  ctx.fillStyle = '#4477a6'; ctx.beginPath(); ctx.roundRect(-6.4, -8, 12.8, 3.5, 1); ctx.fill();
+  ctx.fillStyle = '#fff0b2'; ctx.fillRect(-0.7, -8, 1.4, 3.5);
+  let left: [number, number, number] = [-8, -15, -0.2];
+  let right: [number, number, number] = [8, -13, 0.15];
+  if (pose === 'jab') right = [21, -14, -0.08];
+  if (pose === 'hook') right = [13, -23, -0.7];
+  if (pose === 'block') { left = [-4, -21, -0.2]; right = [4, -21, 0.2]; }
+  fightGlove(ctx, left[0], left[1], '#e95e65', left[2]);
+  fightGlove(ctx, right[0], right[1], '#e95e65', right[2]);
+  ctx.restore();
+}
+
+function drawFightCone(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  floor: number,
+  state: FrostState,
+  move: FrostMove,
+  hurt: boolean,
+  time: number,
+): void {
+  const lunge = state === 'strike' ? -28 : state === 'hurt' ? 16 : 0;
+  ctx.save();
+  ctx.translate(x + lunge, floor);
+  if (state === 'hurt') ctx.rotate(0.14);
+  const pulse = state === 'tell' ? Math.sin(time / 70) * 0.045 : Math.sin(time / 330) * 0.015;
+  ctx.scale(4.25 + pulse, 4.25 - pulse);
+  drawIceCreamFolk(ctx, -7, -24, { flip: true, boxing: true, hurt, frame: Math.floor(time / 170) });
+  ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(-7.5, -8, 15, 4.8, 2); ctx.fill();
+  ctx.fillStyle = '#7a4f9b'; ctx.beginPath(); ctx.roundRect(-6.3, -7.2, 12.6, 3.2, 1); ctx.fill();
+  let left: [number, number, number] = [-8, -16, -0.1];
+  let right: [number, number, number] = [8, -14, 0.2];
+  if (state === 'tell') {
+    if (move === 'jab') left = [-15, -20, 0.5];
+    else if (move === 'hook') right = [12, -24, -0.8];
+    else { left = [-5, -24, 0]; right = [5, -24, 0]; }
+  }
+  if (state === 'strike') {
+    if (move === 'jab') left = [-23, -15, 0];
+    else if (move === 'hook') right = [-18, -22, -0.8];
+    else { left = [-17, -19, 0.25]; right = [-12, -11, -0.2]; }
+  }
+  fightGlove(ctx, left[0], left[1], '#5ba6d6', left[2]);
+  fightGlove(ctx, right[0], right[1], '#5ba6d6', right[2]);
+  ctx.restore();
+}
+
+function fightBar(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, value: number, color: string, flip: boolean): void {
+  ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(x - 2, y - 2, width + 4, 15, 5); ctx.fill();
+  ctx.fillStyle = '#302c46'; ctx.beginPath(); ctx.roundRect(x, y, width, 11, 3); ctx.fill();
+  const filled = Math.max(0, Math.min(width, width * value / 100));
+  const gradient = ctx.createLinearGradient(x, y, x, y + 11);
+  gradient.addColorStop(0, shade(color, 42)); gradient.addColorStop(1, shade(color, -28));
+  ctx.fillStyle = gradient;
+  ctx.beginPath(); ctx.roundRect(flip ? x + width - filled : x, y, filled, 11, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.33)'; ctx.fillRect(flip ? x + width - filled + 2 : x + 2, y + 1, Math.max(0, filled - 4), 2);
+}
+
+function boxing(opts: MiniOpts): Game {
+  let time = 0;
+  let round = 45;
+  let playerHp = 100;
+  let frostHp = 100;
+  let stamina = 100;
+  let playerPose: FightPose = 'idle';
+  let playerPoseT = 0;
+  let dodge = 0;
+  let dodgeT = 0;
+  let dodgeCooldown = 0;
+  let rivalState: FrostState = 'idle';
+  let rivalMove: FrostMove = 'jab';
+  let rivalT = 1.25;
+  let shake = 0;
+  let combo = 0;
+  let bestCombo = 0;
+  let counters = 0;
+  let callout = 'READ THE GLOVES!';
+  let calloutT = 1.8;
+  let calloutColor = '#fff3aa';
+  let result: GameOutcome | null = null;
+  const sparks: FightSpark[] = [];
+
+  const say = (text: string, color = '#fff3aa', seconds = 0.8): void => {
+    callout = text; calloutColor = color; calloutT = seconds;
+  };
+  const burst = (x: number, y: number, color: string, amount = 12): void => {
+    for (let i = 0; i < amount; i++) {
+      const a = (i / amount) * Math.PI * 2 + Math.random() * 0.35;
+      const speed = 35 + Math.random() * 85;
+      sparks.push({ x, y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed - 22, life: 0.45 + Math.random() * 0.35, color });
+    }
+  };
+  const finish = (): void => {
+    if (result) return;
+    const won = frostHp <= 0 || (playerHp > frostHp && playerHp > 0);
+    result = {
+      won,
+      value: bestCombo,
+      summary: won
+        ? `Frost hit the canvas. You landed a <b>${bestCombo}-hit best combo</b> with <b>${counters} clean counters</b>.`
+        : `The bell saved Frost with ${Math.ceil(frostHp)}% chill left. Best combo: <b>${bestCombo}</b>. Watch the glove tell, then strike during recovery.`,
+    };
+    if (won) opts.sfx.chime(); else opts.sfx.click();
+  };
+  const chooseMove = (): void => {
+    const roll = Math.random();
+    rivalMove = roll < 0.46 ? 'jab' : roll < 0.78 ? 'hook' : 'scoop';
+    rivalState = 'tell';
+    rivalT = rivalMove === 'jab' ? 0.58 : rivalMove === 'hook' ? 0.82 : 1.05;
+    say(rivalMove === 'scoop' ? 'DOUBLE SCOOP WIND-UP!' : rivalMove === 'hook' ? 'WATCH THE HIGH GLOVE!' : 'QUICK SERVE!', '#bde8ff', rivalT);
+  };
+  const rivalStrike = (blocking: boolean): void => {
+    rivalState = 'strike';
+    rivalT = 0.18;
+    const dodged = dodgeT > 0 && Math.abs(dodge) > 0.53;
+    if (dodged) {
+      combo = 0;
+      counters++;
+      say('SWEET DODGE — COUNTER!', '#baf2a5', 0.75);
+      opts.sfx.coin();
+      return;
+    }
+    const base = rivalMove === 'jab' ? 9 : rivalMove === 'hook' ? 15 : 18;
+    if (blocking && stamina > 8) {
+      const chip = rivalMove === 'scoop' ? 5 : 2;
+      playerHp = Math.max(0, playerHp - chip);
+      stamina = Math.max(0, stamina - (rivalMove === 'scoop' ? 28 : 16));
+      shake = Math.max(shake, 4);
+      say(rivalMove === 'scoop' ? 'GUARD CRACKED!' : 'BLOCKED!', '#ffe0a0', 0.65);
+      opts.sfx.click();
+    } else {
+      playerHp = Math.max(0, playerHp - base);
+      playerPose = 'hit'; playerPoseT = 0.36;
+      combo = 0; shake = Math.max(shake, 10);
+      burst(205, 202, '#dff6ff', 15);
+      say(rivalMove === 'scoop' ? 'BRAIN FREEZE!' : 'COLD HIT!', '#ff9ca7', 0.7);
+      opts.sfx.click();
+    }
+  };
+  const playerAttack = (kind: 'jab' | 'hook'): void => {
+    const cost = kind === 'jab' ? 8 : 22;
+    if (playerPose !== 'idle' || stamina < cost) {
+      if (stamina < cost) say('CATCH YOUR BREATH!', '#ffd0a6', 0.5);
+      return;
+    }
+    playerPose = kind;
+    playerPoseT = kind === 'jab' ? 0.22 : 0.42;
+    stamina -= cost;
+    const vulnerable = rivalState === 'recover' || rivalState === 'strike';
+    const riskyTell = rivalState === 'tell';
+    const guarded = rivalState === 'idle' && Math.random() < 0.5;
+    let damage = kind === 'jab' ? 4 : 8;
+    if (vulnerable) damage *= kind === 'jab' ? 2.15 : 2.05;
+    else if (guarded) damage *= 0.3;
+    else if (riskyTell) damage *= 0.65;
+    frostHp = Math.max(0, frostHp - damage);
+    combo++;
+    bestCombo = Math.max(bestCombo, combo);
+    shake = Math.max(shake, vulnerable ? 8 : 3);
+    burst(441, kind === 'hook' ? 160 : 190, kind === 'hook' ? '#ffe36f' : '#fff4b6', vulnerable ? 18 : 9);
+    opts.sfx.coin();
+    if (vulnerable) {
+      rivalState = 'hurt'; rivalT = kind === 'hook' ? 0.42 : 0.24;
+      say(kind === 'hook' ? 'ZEST HOOK COUNTER!' : 'CLEAN COUNTER!', '#fff176', 0.75);
+    } else if (guarded) {
+      say('WAFFLE GUARD!', '#cfc5e8', 0.45);
+    }
+  };
+
+  return {
+    get result() { return result; },
+    set result(v) { result = v; },
+    update(dt, input, justPressed) {
+      time += dt * 1000;
+      round = Math.max(0, round - dt);
+      calloutT = Math.max(0, calloutT - dt);
+      shake = Math.max(0, shake - dt * 28);
+      playerPoseT -= dt;
+      if (playerPoseT <= 0 && playerPose !== 'block') playerPose = 'idle';
+
+      dodgeT = Math.max(0, dodgeT - dt);
+      dodgeCooldown = Math.max(0, dodgeCooldown - dt);
+      if (dodgeCooldown <= 0 && (justPressed.has('left') || justPressed.has('right'))) {
+        dodge = justPressed.has('left') ? -1 : 1;
+        dodgeT = 0.34;
+        dodgeCooldown = 0.56;
+      }
+      if (dodgeT <= 0) dodge += (0 - dodge) * Math.min(1, dt * 15);
+      const blocking = input.up && playerPose !== 'jab' && playerPose !== 'hook' && playerPose !== 'hit';
+      if (blocking) playerPose = 'block';
+      else if (playerPose === 'block') playerPose = 'idle';
+      stamina = Math.min(100, stamina + dt * (blocking ? 5 : 17));
+
+      if (justPressed.has('a')) playerAttack('jab');
+      if (justPressed.has('b')) playerAttack('hook');
+
+      rivalT -= dt;
+      if (rivalState === 'idle' && rivalT <= 0) chooseMove();
+      else if (rivalState === 'tell' && rivalT <= 0) rivalStrike(blocking);
+      else if (rivalState === 'strike' && rivalT <= 0) { rivalState = 'recover'; rivalT = rivalMove === 'scoop' ? 1.05 : 0.72; }
+      else if (rivalState === 'recover' && rivalT <= 0) { rivalState = 'idle'; rivalT = 0.72 + Math.random() * 0.65; combo = 0; }
+      else if (rivalState === 'hurt' && rivalT <= 0) { rivalState = 'recover'; rivalT = 0.62; }
+
+      for (const spark of sparks) {
+        spark.life -= dt; spark.x += spark.vx * dt; spark.y += spark.vy * dt; spark.vy += 150 * dt;
+      }
+      for (let i = sparks.length - 1; i >= 0; i--) if (sparks[i].life <= 0) sparks.splice(i, 1);
+
+      if (playerHp <= 0 || frostHp <= 0 || round <= 0) finish();
+    },
+    draw(ctx) {
+      ctx.save();
+      const sx = shake > 0 ? (Math.random() - 0.5) * shake : 0;
+      const sy = shake > 0 ? (Math.random() - 0.5) * shake * 0.55 : 0;
+      ctx.translate(sx, sy);
+      drawTownBackground(ctx, 'night', 0.88, 'sunny', time);
+      const night = ctx.createLinearGradient(0, 0, 0, H);
+      night.addColorStop(0, 'rgba(23,24,65,0.5)'); night.addColorStop(0.5, 'rgba(45,35,78,0.36)'); night.addColorStop(1, 'rgba(15,20,38,0.75)');
+      ctx.fillStyle = night; ctx.fillRect(0, 0, W, H);
+
+      // Festival pavilion, full crowd, and warm/cool spotlights.
+      ctx.fillStyle = 'rgba(18,20,43,0.9)'; ctx.beginPath(); ctx.moveTo(0, 92); ctx.lineTo(640, 92); ctx.lineTo(640, 205); ctx.lineTo(0, 205); ctx.closePath(); ctx.fill();
+      for (let row = 0; row < 2; row++) {
+        for (let i = 0; i < 23; i++) {
+          const cx = 10 + i * 29 + (row % 2) * 8;
+          const cy = 112 + row * 38 + Math.sin(time / 220 + i * 1.7) * 2;
+          ctx.fillStyle = ['#e89378', '#f1c954', '#79b8a0', '#7b8fbd', '#b87fa9'][i % 5];
+          ctx.beginPath(); ctx.arc(cx, cy, 6 + (i % 3), 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#252842'; ctx.beginPath(); ctx.roundRect(cx - 7, cy + 5, 14, 14, 5); ctx.fill();
+        }
+      }
+      drawBigfoot(ctx, 42, 102, Math.floor(time / 240), { her: true });
+      drawAlienGuy(ctx, 113, 139, Math.floor(time / 170), true, true);
+      drawLemonFolk(ctx, 538, 132, { color: '#f2b8c6' });
+      drawIceCreamFolk(ctx, 587, 129, { frame: Math.floor(time / 190) });
+
+      const warm = ctx.createRadialGradient(194, 168, 8, 194, 168, 195);
+      warm.addColorStop(0, 'rgba(255,224,125,0.38)'); warm.addColorStop(1, 'rgba(255,224,125,0)');
+      ctx.fillStyle = warm; ctx.fillRect(0, 65, 390, 260);
+      const cool = ctx.createRadialGradient(458, 167, 8, 458, 167, 195);
+      cool.addColorStop(0, 'rgba(145,218,255,0.38)'); cool.addColorStop(1, 'rgba(145,218,255,0)');
+      ctx.fillStyle = cool; ctx.fillRect(260, 65, 380, 260);
+
+      // A deep, perspective ring with three softly glowing ropes.
+      ctx.fillStyle = 'rgba(7,11,24,0.72)'; ctx.beginPath(); ctx.ellipse(320, 325, 286, 32, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.moveTo(54, 222); ctx.lineTo(586, 222); ctx.lineTo(626, 334); ctx.lineTo(14, 334); ctx.closePath(); ctx.fill();
+      const mat = ctx.createLinearGradient(0, 220, 0, 334);
+      mat.addColorStop(0, '#5f7199'); mat.addColorStop(0.48, '#3f527d'); mat.addColorStop(1, '#263653');
+      ctx.fillStyle = mat; ctx.beginPath(); ctx.moveTo(61, 226); ctx.lineTo(579, 226); ctx.lineTo(616, 327); ctx.lineTo(24, 327); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.beginPath(); ctx.ellipse(320, 283, 180, 28, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,241,190,0.32)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(320, 279, 70, 0, Math.PI * 2); ctx.stroke();
+      for (const px of [42, 598]) {
+        ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(px - 7, 181, 14, 151, 5); ctx.fill();
+        const post = ctx.createLinearGradient(px - 5, 0, px + 5, 0); post.addColorStop(0, '#9c334d'); post.addColorStop(0.5, '#ef6e78'); post.addColorStop(1, '#6d2644');
+        ctx.fillStyle = post; ctx.beginPath(); ctx.roundRect(px - 5, 184, 10, 145, 3); ctx.fill();
+      }
+      for (let rope = 0; rope < 3; rope++) {
+        const ry = 198 + rope * 27;
+        ctx.strokeStyle = OUTLINE; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(42, ry); ctx.quadraticCurveTo(320, ry + 7, 598, ry); ctx.stroke();
+        ctx.strokeStyle = rope % 2 === 0 ? '#f5e5c2' : '#e86372'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(42, ry); ctx.quadraticCurveTo(320, ry + 7, 598, ry); ctx.stroke();
+      }
+
+      const playerHurt = playerPose === 'hit';
+      drawFightLemon(ctx, 184, 312, playerPose, dodge, playerHurt, time, LIQ[opts.playerFlavor]);
+      drawFightCone(ctx, 457, 309, rivalState, rivalMove, rivalState === 'hurt', time);
+
+      if (rivalState === 'tell') {
+        const pulse = 0.6 + Math.sin(time / 80) * 0.28;
+        ctx.save(); ctx.globalAlpha = pulse; ctx.shadowColor = '#bdeaff'; ctx.shadowBlur = 12;
+        ctx.fillStyle = '#dff5ff'; ctx.font = '900 13px "Trebuchet MS", sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(rivalMove === 'jab' ? 'JAB' : rivalMove === 'hook' ? 'HOOK' : 'SCOOP', 457, 105); ctx.restore();
+      }
+
+      for (const spark of sparks) {
+        ctx.save(); ctx.globalAlpha = Math.min(1, spark.life * 2.5); ctx.translate(spark.x, spark.y); ctx.rotate(spark.x * 0.05);
+        ctx.fillStyle = spark.color; ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(2, -1); ctx.lineTo(6, 0); ctx.lineTo(2, 2); ctx.lineTo(0, 6); ctx.lineTo(-2, 2); ctx.lineTo(-6, 0); ctx.lineTo(-2, -1); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+
+      // Broadcast-style HUD remains crisp over the painterly ring.
+      ctx.fillStyle = 'rgba(12,18,37,0.91)'; ctx.beginPath(); ctx.roundRect(12, 10, 616, 57, 11); ctx.fill();
+      fightBar(ctx, 28, 27, 232, playerHp, '#e7bd42', false);
+      fightBar(ctx, 380, 27, 232, frostHp, '#69b7dc', true);
+      ctx.fillStyle = '#fff8e7'; ctx.font = '900 10px "Trebuchet MS", sans-serif';
+      ctx.fillText('ZEST', 28, 21); ctx.textAlign = 'right'; ctx.fillText('FROST', 612, 21); ctx.textAlign = 'left';
+      ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.arc(320, 37, 25, 0, Math.PI * 2); ctx.fill();
+      const clock = ctx.createRadialGradient(313, 29, 1, 320, 37, 25); clock.addColorStop(0, '#fff5c8'); clock.addColorStop(1, '#e3a347');
+      ctx.fillStyle = clock; ctx.beginPath(); ctx.arc(320, 37, 21, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#21314a'; ctx.font = '900 17px "Trebuchet MS", sans-serif'; ctx.textAlign = 'center'; ctx.fillText(String(Math.ceil(round)).padStart(2, '0'), 320, 43);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(28, 49, 190, 10, 4); ctx.fill();
+      ctx.fillStyle = '#39364f'; ctx.beginPath(); ctx.roundRect(30, 51, 186, 6, 2); ctx.fill();
+      const stam = ctx.createLinearGradient(30, 0, 216, 0); stam.addColorStop(0, '#66d6b5'); stam.addColorStop(1, '#f5e570');
+      ctx.fillStyle = stam; ctx.beginPath(); ctx.roundRect(30, 51, 186 * stamina / 100, 6, 2); ctx.fill();
+      ctx.fillStyle = '#e9f8e7'; ctx.font = '700 7px "Trebuchet MS", sans-serif'; ctx.fillText('ZEST METER', 222, 57);
+      ctx.textAlign = 'right'; ctx.fillText(`COMBO ${combo} · BEST ${bestCombo}`, 612, 57); ctx.textAlign = 'left';
+
+      if (calloutT > 0) {
+        ctx.save(); ctx.globalAlpha = Math.min(1, calloutT * 2.5);
+        ctx.fillStyle = 'rgba(17,26,48,0.82)'; ctx.beginPath(); ctx.roundRect(202, 76, 236, 28, 10); ctx.fill();
+        ctx.fillStyle = calloutColor; ctx.font = '900 12px "Trebuchet MS", sans-serif'; ctx.textAlign = 'center'; ctx.fillText(callout, 320, 95); ctx.restore();
+      }
+      ctx.restore();
     },
   };
 }

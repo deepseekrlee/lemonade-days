@@ -389,6 +389,7 @@ export class UI {
         <button class="ev-choice" data-g="dash" ${canDivine ? '' : 'disabled'}><b>🏁 Citrus Dash</b><span class="hint">flavor face-off · hurdle race, jump the ice</span></button>
         <button class="ev-choice" data-g="chug"><b>🔫 Chug Duel</b><span class="hint">just for glory · catch the lemonade stream, fill up first</span></button>
         <button class="ev-choice" data-g="ramp"><b>🏎️ Ramp Rally</b><span class="hint">hold the gas, manage engine heat, and clear more lemons than the ice cream truck</span></button>
+        <button class="ev-choice" data-g="boxing"><b>🥊 Zest vs. Frost</b><span class="hint">ringside showdown · read the cone’s tells, dodge, block, and counterpunch</span></button>
         <button class="ev-choice" id="lg-garage"><b>🔧 Rally Garage · tier ${run.truck.level}/3</b><span class="hint">upgrades raise the ceiling; the rival upgrades too</span></button>
       </div>
       <div class="ev-choices"><button class="ev-choice" id="lg-close"><b>Back</b></button></div>`);

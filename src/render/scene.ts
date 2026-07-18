@@ -360,6 +360,8 @@ export class Scene {
   private communityMural(): void {
     const stage = this.muralStage;
     if (stage <= 0) return;
+    this.communityMuralRemastered(stage);
+    return;
     const ctx = this.ctx;
     ctx.save();
     const x = 119, y = 119, w = 116, h = 74;
@@ -493,6 +495,156 @@ export class Scene {
       ctx.fillStyle = '#2f7d4a';
       ctx.fillRect(185, 190, 30, 6);
     }
+  }
+
+  private communityMuralRemastered(stage: number): void {
+    const ctx = this.ctx;
+    const panels = [
+      { x: 72, y: 111, w: 88, h: 87, reveal: 1 },
+      { x: 174, y: 129, w: 79, h: 69, reveal: 2 },
+      { x: 265, y: 145, w: 72, h: 53, reveal: 3 },
+    ] as const;
+    ctx.save();
+    ctx.globalAlpha = 0.97;
+
+    for (const [index, panel] of panels.entries()) {
+      if (stage < panel.reveal) continue;
+      const { x, y, w, h } = panel;
+      ctx.save();
+      ctx.shadowColor = 'rgba(13,30,45,0.38)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+      roundedRectPath(ctx, x - 2.5, y - 2.5, w + 5, h + 5, 4); ctx.fillStyle = '#183349'; ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      roundedRectPath(ctx, x, y, w, h, 2.5); ctx.clip();
+      const wash = ctx.createLinearGradient(x, y, x + w, y + h);
+      if (index === 0) {
+        wash.addColorStop(0, '#f8dd88'); wash.addColorStop(0.52, '#ef9b67'); wash.addColorStop(1, '#d66f69');
+      } else if (index === 1) {
+        wash.addColorStop(0, '#e9916e'); wash.addColorStop(0.5, '#65aa8c'); wash.addColorStop(1, '#28716d');
+      } else {
+        wash.addColorStop(0, '#69b39a'); wash.addColorStop(0.55, '#327b74'); wash.addColorStop(1, '#244b67');
+      }
+      ctx.fillStyle = wash; ctx.fillRect(x, y, w, h);
+
+      // Dry-brush texture makes every facade feel hand painted instead of flat.
+      ctx.globalAlpha = 0.13;
+      ctx.strokeStyle = index === 0 ? '#fff7c2' : '#d8f0cb';
+      ctx.lineWidth = 2;
+      for (let py = y + 7; py < y + h; py += 8) {
+        ctx.beginPath();
+        ctx.moveTo(x + 4 + ((py * 3) % 9), py);
+        ctx.bezierCurveTo(x + w * 0.33, py - 2, x + w * 0.66, py + 2, x + w - 4, py - 1);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      if (stage < 5) {
+        // Uneven primer at the newest edge tells the player the work is active.
+        const fresh = stage === panel.reveal;
+        if (fresh) {
+          ctx.fillStyle = 'rgba(255,239,193,0.22)';
+          for (let stripe = 0; stripe < 4; stripe++) ctx.fillRect(x + w - 14 + stripe * 3, y + 3, 2, h - 6 - stripe * 4);
+        }
+      }
+      ctx.restore();
+    }
+
+    // Stage two establishes the lemon-sun logo on the first building.
+    if (stage >= 2) {
+      const cx = 112, cy = 149;
+      ctx.save(); ctx.shadowColor = 'rgba(255,235,128,0.5)'; ctx.shadowBlur = stage >= 5 ? 10 : 4;
+      ctx.strokeStyle = '#fff1a8'; ctx.lineWidth = 4;
+      for (let i = 0; i < 10; i++) {
+        const a = (i * Math.PI * 2) / 10;
+        ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * 25, cy + Math.sin(a) * 25); ctx.lineTo(cx + Math.cos(a) * 33, cy + Math.sin(a) * 33); ctx.stroke();
+      }
+      ctx.fillStyle = '#163c4a'; ctx.beginPath(); ctx.ellipse(cx, cy, 24, 29, -0.12, 0, Math.PI * 2); ctx.fill();
+      const lemon = ctx.createRadialGradient(cx - 8, cy - 10, 2, cx, cy, 29);
+      lemon.addColorStop(0, '#fff6a8'); lemon.addColorStop(0.48, '#f4d34f'); lemon.addColorStop(1, '#d88d35');
+      ctx.fillStyle = lemon; ctx.beginPath(); ctx.ellipse(cx, cy, 21, 26, -0.12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,225,0.58)'; ctx.beginPath(); ctx.ellipse(cx - 8, cy - 9, 4, 9, 0.25, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2e755c'; ctx.beginPath(); ctx.ellipse(cx + 19, cy - 27, 13, 6, -0.45, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Stage three connects separate buildings with one continuous community vine.
+    if (stage >= 3) {
+      ctx.save();
+      ctx.strokeStyle = '#173f4a'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(136, 183); ctx.bezierCurveTo(174, 159, 199, 188, 224, 159); ctx.bezierCurveTo(254, 132, 278, 184, 324, 162); ctx.stroke();
+      ctx.strokeStyle = '#63a96f'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(136, 183); ctx.bezierCurveTo(174, 159, 199, 188, 224, 159); ctx.bezierCurveTo(254, 132, 278, 184, 324, 162); ctx.stroke();
+      const leaves = [[154, 170, -0.5], [187, 177, 0.35], [213, 166, -0.55], [242, 155, 0.45], [276, 172, -0.4], [307, 167, 0.25]] as const;
+      for (const [lx, ly, angle] of leaves) {
+        ctx.fillStyle = '#d7e984'; ctx.beginPath(); ctx.ellipse(lx, ly, 7, 3.5, angle, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,250,180,0.5)'; ctx.beginPath(); ctx.ellipse(lx - 1, ly - 1, 3.5, 1, angle, 0, Math.PI * 2); ctx.fill();
+      }
+      // Small neighborhood silhouettes hold the vine up together.
+      for (let i = 0; i < 8; i++) {
+        const px = 181 + i * 18;
+        const py = 191 - (i % 3) * 2;
+        ctx.fillStyle = ['#f8dc8b', '#f2a17a', '#a7d5a6'][i % 3];
+        ctx.beginPath(); ctx.arc(px, py - 8, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(px - 3, py - 4, 6, 10);
+      }
+      ctx.restore();
+    }
+
+    // The final words span two facades; they only read as one idea from afar.
+    if (stage >= 4) {
+      ctx.save();
+      ctx.fillStyle = '#fff8dd'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(18,46,53,0.5)'; ctx.shadowBlur = 2;
+      ctx.font = '900 18px "Trebuchet MS", sans-serif'; ctx.fillText('GROW', 214, 148);
+      ctx.font = '900 10px "Trebuchet MS", sans-serif'; ctx.fillText('TOGETHER', 301, 158);
+      ctx.font = '700 7px "Trebuchet MS", sans-serif'; ctx.fillText('ONE NEIGHBORHOOD · MANY FLAVORS', 246, 187);
+      ctx.restore();
+    }
+
+    if (stage >= 5) {
+      // Completion adds warm edge-light, a signature, and celebratory bunting.
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const glow = ctx.createLinearGradient(68, 105, 340, 204);
+      glow.addColorStop(0, 'rgba(255,255,222,0.3)'); glow.addColorStop(0.45, 'rgba(255,255,255,0)'); glow.addColorStop(1, 'rgba(125,226,195,0.24)');
+      ctx.fillStyle = glow;
+      for (const panel of panels) { roundedRectPath(ctx, panel.x, panel.y, panel.w, panel.h, 2.5); ctx.fill(); }
+      ctx.restore();
+      ctx.strokeStyle = '#f7dc73'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(69, 105); ctx.quadraticCurveTo(204, 123, 340, 139); ctx.stroke();
+      for (let i = 0; i < 12; i++) {
+        const bx = 77 + i * 22.5;
+        const by = 107 + i * 1.35;
+        ctx.fillStyle = ['#ef7e77', '#f4d34f', '#74c39c', '#7da9cc'][i % 4];
+        ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + 9, by + 1); ctx.lineTo(bx + 4.5, by + 10); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = '#fff8da'; ctx.font = 'italic 6px "Trebuchet MS", sans-serif'; ctx.fillText('painted by all of us', 273, 194);
+    } else {
+      // Scaffolding and two animated painters migrate as the project grows.
+      const active = panels[Math.min(stage, 3) - 1];
+      const left = 65;
+      const right = active.x + active.w + 8;
+      ctx.strokeStyle = '#3b3540'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(left, 205); ctx.lineTo(left + 5, 103);
+      ctx.moveTo(right, 205); ctx.lineTo(right - 3, Math.max(103, active.y - 9));
+      ctx.moveTo(left + 2, 169); ctx.lineTo(right - 1, 169);
+      ctx.moveTo(left + 1, 198); ctx.lineTo(right, 198);
+      ctx.stroke();
+      ctx.strokeStyle = '#b47a42'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(left, 170); ctx.lineTo(right, 170); ctx.moveTo(left, 199); ctx.lineTo(right, 199); ctx.stroke();
+      const paintPerson = (px: number, py: number, flip: boolean): void => {
+        ctx.save(); ctx.translate(px, py); ctx.scale(0.7, 0.7);
+        drawPerson(ctx, 0, 0, Math.floor(this.time / 220), {
+          shirt: flip ? '#e98a72' : '#6da7c8', skin: flip ? '#e8b48a' : '#9b6545', hair: '#3f3548', pants: '#3f5262',
+        }, { flip });
+        ctx.restore();
+      };
+      paintPerson(right - 27, 174, false);
+      if (stage >= 3) paintPerson(left + 25, 145, true);
+      ctx.fillStyle = '#f3d45a'; ctx.beginPath(); ctx.roundRect(right - 13, 188, 10, 8, 2); ctx.fill();
+      ctx.fillStyle = '#ef8d6b'; ctx.fillRect(right - 11, 186, 6, 3);
+    }
+    ctx.restore();
   }
 
   private grass(): void {
@@ -1193,7 +1345,13 @@ export class Scene {
       let x = 178;
       if (inTime < 8) x = -150 + (328 * inTime) / 8;
       else if (outTime < 8) x = 178 + (610 * (8 - outTime)) / 8;
-      this.drawIceCreamTruck(Math.round(x), 316);
+      const serviceIn = Math.max(0, Math.min(1, (inTime - 8) / 4));
+      const serviceOut = Math.max(0, Math.min(1, (outTime - 8) / 4));
+      this.drawIceCreamTruck(Math.round(x), 316, {
+        moving: inTime < 8 || outTime < 8,
+        service: Math.min(serviceIn, serviceOut),
+        departing: outTime < 8,
+      });
     }
     if (this.motorcadeMinute === null) return;
     const elapsed = minute - this.motorcadeMinute;
@@ -1201,13 +1359,17 @@ export class Scene {
     let leadX = 58;
     if (elapsed < 10) leadX = -430 + (488 * elapsed) / 10;
     else if (elapsed > 34) leadX = 58 + (720 * (elapsed - 34)) / 12;
-    this.drawSUV(Math.round(leadX), 322);
-    this.drawLimo(Math.round(leadX + 116), 320);
-    this.drawSUV(Math.round(leadX + 286), 322);
-    if (elapsed >= 11 && elapsed <= 33) this.drawPresidentialStop();
+    const moving = elapsed < 10 || elapsed > 34;
+    const doorIn = Math.max(0, Math.min(1, (elapsed - 11) / 2));
+    const doorOut = Math.max(0, Math.min(1, (34 - elapsed) / 2));
+    const door = Math.min(doorIn, doorOut);
+    this.drawSUV(Math.round(leadX), 322, moving);
+    this.drawLimo(Math.round(leadX + 116), 320, door, moving);
+    this.drawSUV(Math.round(leadX + 286), 322, moving);
+    if (elapsed >= 11 && elapsed <= 33) this.drawPresidentialStop(leadX, elapsed);
   }
 
-  private wheel(x: number, y: number, r = 8): void {
+  private wheel(x: number, y: number, r = 8, spin = 0): void {
     const ctx = this.ctx;
     ctx.fillStyle = OUTLINE;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
@@ -1215,12 +1377,20 @@ export class Scene {
     ctx.beginPath(); ctx.arc(x, y, r - 2, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#8295a2';
     ctx.beginPath(); ctx.arc(x, y, Math.max(2, r * 0.43), 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(spin);
+    ctx.strokeStyle = '#d5dee3'; ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.18, Math.sin(a) * r * 0.18); ctx.lineTo(Math.cos(a) * r * 0.63, Math.sin(a) * r * 0.63); ctx.stroke();
+    }
+    ctx.restore();
     ctx.fillStyle = '#e9eee4';
     ctx.beginPath(); ctx.arc(x, y, Math.max(1, r * 0.16), 0, Math.PI * 2); ctx.fill();
   }
 
-  private drawIceCreamTruck(x: number, y: number): void {
-    this.iceCreamTruckRemastered(x, y);
+  private drawIceCreamTruck(x: number, y: number, state: { moving: boolean; service: number; departing: boolean }): void {
+    this.iceCreamTruckRemastered(x, y, state);
     return;
     const ctx = this.ctx;
     ctx.fillStyle = 'rgba(20,16,40,0.2)';
@@ -1261,9 +1431,12 @@ export class Scene {
     this.wheel(x + 106, y + 27);
   }
 
-  private iceCreamTruckRemastered(x: number, y: number): void {
+  private iceCreamTruckRemastered(x: number, y: number, state: { moving: boolean; service: number; departing: boolean }): void {
     const ctx = this.ctx;
+    const bounce = state.moving ? Math.sin(this.time / 85) * 1.4 : Math.sin(this.time / 520) * 0.25;
+    const wheelSpin = state.moving ? this.time * 0.025 : 0;
     ctx.save();
+    ctx.translate(0, bounce);
     drawSoftShadow(ctx, x + 66, y + 31, 67, 6, 0.33);
     ctx.shadowColor = 'rgba(12,19,35,0.32)'; ctx.shadowBlur = 7;
     roundedRectPath(ctx, x, y - 26, 132, 54, 8);
@@ -1286,6 +1459,28 @@ export class Scene {
     ctx.fillStyle = 'rgba(36,51,64,0.72)'; ctx.fillRect(x + 35, y - 13, 3, 21);
     ctx.fillStyle = '#f9f2d7'; ctx.fillRect(x + 18, y - 2, 12, 8); ctx.fillRect(x + 43, y - 3, 14, 9);
 
+    if (state.service > 0) {
+      const open = state.service;
+      // The service hatch lifts, the striped awning unfolds, and the vendor leans out.
+      ctx.save();
+      ctx.globalAlpha = open;
+      ctx.fillStyle = '#14263b'; roundedRectPath(ctx, x + 11, y - 15, 57, 23, 2); ctx.fill();
+      ctx.fillStyle = '#f7e9d9'; ctx.fillRect(x + 13, y - 13, 53, 19);
+      const awningY = y - 17 - 10 * open;
+      ctx.fillStyle = OUTLINE; roundedRectPath(ctx, x + 9, awningY - 2, 61, 10, 2); ctx.fill();
+      for (let stripe = 0; stripe < 7; stripe++) {
+        ctx.fillStyle = stripe % 2 === 0 ? '#ef91aa' : '#fff5e1';
+        ctx.beginPath(); ctx.moveTo(x + 11 + stripe * 8.1, awningY); ctx.lineTo(x + 19 + stripe * 8.1, awningY); ctx.lineTo(x + 16 + stripe * 8.1, awningY + 6); ctx.lineTo(x + 9 + stripe * 8.1, awningY + 6); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = '#26364a'; ctx.beginPath(); ctx.ellipse(x + 43, y - 6, 6.5, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#b87658'; ctx.beginPath(); ctx.ellipse(x + 43, y - 4, 5, 5.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f6e5d3'; ctx.beginPath(); ctx.arc(x + 41.5, y - 4.5, 0.7, 0, Math.PI * 2); ctx.arc(x + 44.5, y - 4.5, 0.7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#86b6c6'; ctx.fillRect(x + 37, y + 1, 12, 6);
+      ctx.fillStyle = '#ffe6a5'; ctx.beginPath(); ctx.arc(x + 56, y + 2, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#9d6042'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(x + 48, y + 2); ctx.lineTo(x + 55, y + 2); ctx.stroke();
+      ctx.restore();
+    }
+
     roundedRectPath(ctx, x + 84, y - 19, 39, 22, 4);
     ctx.fillStyle = '#1c3046'; ctx.fill();
     ctx.fillStyle = 'rgba(132,206,222,0.63)';
@@ -1306,14 +1501,36 @@ export class Scene {
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#f4cf55'; ctx.beginPath(); ctx.arc(x + 77, y - 29, 3, 0, Math.PI * 2); ctx.fill();
 
-    this.wheel(x + 24, y + 27);
-    this.wheel(x + 106, y + 27);
+    if (!state.moving && state.service > 0.6) {
+      ctx.save();
+      ctx.globalAlpha = 0.55 + Math.sin(this.time / 210) * 0.25;
+      ctx.fillStyle = '#fff3ad'; ctx.font = '900 12px "Trebuchet MS", sans-serif';
+      ctx.fillText('♪', x + 75, y - 43 - Math.sin(this.time / 400) * 4);
+      ctx.fillText('♫', x + 91, y - 52 - Math.cos(this.time / 480) * 5);
+      ctx.restore();
+    }
+    if (state.departing) {
+      for (let puff = 0; puff < 3; puff++) {
+        const drift = ((this.time / 8 + puff * 13) % 24);
+        ctx.fillStyle = `rgba(228,231,224,${0.2 - puff * 0.04})`;
+        ctx.beginPath(); ctx.arc(x - 4 - drift, y + 18 - puff * 3, 4 + puff * 1.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.save();
+    ctx.shadowColor = state.departing ? '#ff4f64' : '#ffb35f'; ctx.shadowBlur = 5;
+    ctx.fillStyle = state.departing ? '#ff4f64' : '#c96a72'; ctx.fillRect(x + 2, y + 10, 4, 8); ctx.restore();
+
+    this.wheel(x + 24, y + 27, 8, wheelSpin);
+    this.wheel(x + 106, y + 27, 8, wheelSpin);
     ctx.restore();
   }
 
-  private drawSUV(x: number, y: number): void {
+  private drawSUV(x: number, y: number, moving = false): void {
     const ctx = this.ctx;
+    const bounce = moving ? Math.sin(this.time / 78 + x * 0.01) * 1.2 : 0;
+    const spin = moving ? this.time * 0.03 : 0;
     ctx.save();
+    ctx.translate(0, bounce);
     drawSoftShadow(ctx, x + 48, y + 13, 49, 5, 0.38);
     roundedRectPath(ctx, x, y - 17, 96, 30, 7);
     ctx.fillStyle = OUTLINE; ctx.fill();
@@ -1331,7 +1548,7 @@ export class Scene {
     ctx.save(); ctx.shadowColor = flash ? '#ef6464' : '#67b7e8'; ctx.shadowBlur = 8;
     ctx.fillStyle = flash ? '#ef6464' : '#67b7e8'; ctx.fillRect(x + 41, y - 33, 13, 4); ctx.restore();
     ctx.fillStyle = '#fff0a0'; ctx.beginPath(); ctx.arc(x + 91, y - 5, 2.5, 0, Math.PI * 2); ctx.fill();
-    this.wheel(x + 20, y + 11, 7); this.wheel(x + 76, y + 11, 7);
+    this.wheel(x + 20, y + 11, 7, spin); this.wheel(x + 76, y + 11, 7, spin);
     ctx.restore();
     return;
     ctx.fillStyle = OUTLINE;
@@ -1352,9 +1569,12 @@ export class Scene {
     this.wheel(x + 76, y + 11, 7);
   }
 
-  private drawLimo(x: number, y: number): void {
+  private drawLimo(x: number, y: number, door = 0, moving = false): void {
     const ctx = this.ctx;
+    const bounce = moving ? Math.sin(this.time / 86 + 0.7) * 1.1 : 0;
+    const spin = moving ? this.time * 0.028 : 0;
     ctx.save();
+    ctx.translate(0, bounce);
     drawSoftShadow(ctx, x + 77, y + 13, 78, 5, 0.42);
     roundedRectPath(ctx, x, y - 17, 154, 30, 7);
     ctx.fillStyle = OUTLINE; ctx.fill();
@@ -1377,7 +1597,20 @@ export class Scene {
     ctx.fillStyle = '#e25259'; ctx.fillRect(x + 135, y - 37, 10, 6);
     ctx.fillStyle = '#fff8e2'; ctx.fillRect(x + 135, y - 31, 10, 6);
     ctx.fillStyle = '#4d75af'; ctx.fillRect(x + 135, y - 25, 10, 6);
-    this.wheel(x + 28, y + 11, 7); this.wheel(x + 126, y + 11, 7);
+    if (door > 0.02) {
+      ctx.fillStyle = '#050a12'; roundedRectPath(ctx, x + 97, y - 14, 29, 24, 3); ctx.fill();
+      ctx.save();
+      ctx.translate(x + 99, y + 8);
+      ctx.rotate(-door * 0.48);
+      ctx.fillStyle = OUTLINE; roundedRectPath(ctx, -2, -23, 31, 25, 3); ctx.fill();
+      const doorPaint = ctx.createLinearGradient(0, -23, 25, 2);
+      doorPaint.addColorStop(0, '#3d4858'); doorPaint.addColorStop(1, '#0a101b');
+      ctx.fillStyle = doorPaint; roundedRectPath(ctx, 0, -21, 27, 21, 2); ctx.fill();
+      ctx.fillStyle = '#6f879d'; roundedRectPath(ctx, 4, -18, 18, 7, 1); ctx.fill();
+      ctx.fillStyle = '#d8d8d3'; ctx.beginPath(); ctx.arc(23, -6, 1.3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    this.wheel(x + 28, y + 11, 7, spin); this.wheel(x + 126, y + 11, 7, spin);
     ctx.restore();
     return;
     ctx.fillStyle = OUTLINE;
@@ -1403,21 +1636,64 @@ export class Scene {
     this.wheel(x + 126, y + 11, 7);
   }
 
-  private drawPresidentialStop(): void {
+  private drawPresidentialStop(leadX: number, elapsed: number): void {
     const ctx = this.ctx;
-    const bob = Math.floor(this.time / 220) % 2;
-    drawPerson(ctx, 430, 260 - bob, 1, { shirt: '#243f77', skin: '#e8b48a', hair: '#d9c37e', pants: '#243f77' }, {});
-    drawPerson(ctx, 404, 263, 1, { shirt: '#252538', skin: '#8d5a3b', hair: '#3f3a52', pants: '#252538' }, {});
-    drawPerson(ctx, 456, 263, 1, { shirt: '#252538', skin: '#c68d5e', hair: '#3f3a52', pants: '#252538' }, { flip: true });
-    ctx.fillStyle = OUTLINE;
-    ctx.fillRect(446, 268 - bob, 8, 11);
-    ctx.fillStyle = '#fbf7ec';
-    ctx.fillRect(447, 269 - bob, 6, 9);
-    ctx.fillStyle = LIQUID[this.flavor];
-    ctx.fillRect(447, 269 - bob, 6, 4);
-    ctx.fillStyle = '#fbf7ec';
-    ctx.font = 'bold 8px monospace';
-    ctx.fillText('ONE LEMONADE, PLEASE.', 356, 246);
+    const smooth = (n: number): number => {
+      const k = Math.max(0, Math.min(1, n));
+      return k * k * (3 - 2 * k);
+    };
+    let progress = 0;
+    let returning = false;
+    if (elapsed < 18) progress = smooth((elapsed - 11) / 7);
+    else if (elapsed <= 27) progress = 1;
+    else { progress = 1 - smooth((elapsed - 27) / 6); returning = true; }
+    if (progress <= 0.02) return;
+    const doorX = leadX + 116 + 112;
+    const standX = 430;
+    const px = doorX + (standX - doorX) * progress;
+    const py = 260 + Math.sin(this.time / 170) * (progress < 0.98 ? 1.2 : 0.25);
+    const walkFrame = Math.floor(this.time / 130) % 4;
+
+    // The agents form a moving protective triangle instead of teleporting in.
+    drawPerson(ctx, px - 26, py + 4, walkFrame + 1, {
+      shirt: '#20283a', skin: '#8d5a3b', hair: '#2c3441', pants: '#20283a',
+    }, { flip: returning });
+    drawPerson(ctx, px + 27, py + 5, walkFrame + 2, {
+      shirt: '#20283a', skin: '#c68d5e', hair: '#2c3441', pants: '#20283a',
+    }, { flip: !returning });
+
+    drawPerson(ctx, px, py, progress < 0.98 ? walkFrame : 1, {
+      shirt: '#294879', skin: '#e8b48a', hair: '#d6c276', pants: '#243b66',
+    }, { flip: returning });
+
+    // Sunglasses read even on the compact shared sprites.
+    ctx.fillStyle = '#101827';
+    ctx.fillRect(px - 18, py + 10, 7, 2); ctx.fillRect(px + 35, py + 11, 7, 2);
+
+    if (progress > 0.96 && elapsed >= 18 && elapsed <= 28) {
+      const sip = elapsed > 22 && elapsed < 25;
+      const cupX = px + (sip ? 12 : 16);
+      const cupY = py + (sip ? 3 : 9);
+      ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(px + 8, py + 14); ctx.lineTo(cupX, cupY + 4); ctx.stroke();
+      ctx.fillStyle = OUTLINE; ctx.beginPath(); ctx.roundRect(cupX, cupY, 9, 12, 2); ctx.fill();
+      ctx.fillStyle = '#fff9e8'; ctx.beginPath(); ctx.roundRect(cupX + 1.5, cupY + 1.5, 6, 9, 1); ctx.fill();
+      ctx.fillStyle = LIQUID[this.flavor]; ctx.fillRect(cupX + 1.5, cupY + 5, 6, 5.5);
+      ctx.strokeStyle = '#fff0b1'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cupX + 5, cupY + 2); ctx.lineTo(cupX + 3, cupY - 4); ctx.stroke();
+      if (elapsed < 22) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(18,37,52,0.88)'; roundedRectPath(ctx, 344, 236, 151, 19, 8); ctx.fill();
+        ctx.fillStyle = '#fff8e4'; ctx.font = '800 8px "Trebuchet MS", sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('ONE LEMONADE, PLEASE.', 419.5, 249);
+        ctx.restore();
+      } else if (elapsed > 24.5 && elapsed < 27) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(18,37,52,0.88)'; roundedRectPath(ctx, 375, 236, 104, 19, 8); ctx.fill();
+        ctx.fillStyle = '#fff8e4'; ctx.font = '800 8px "Trebuchet MS", sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('REFRESHING!', 427, 249);
+        ctx.restore();
+      }
+    }
   }
 
   private updateWalkers(dtMs: number): void {
